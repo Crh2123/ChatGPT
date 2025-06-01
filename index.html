@@ -1,1 +1,115 @@
- Play soldier 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PWA Builder</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2em;
+      background: #f0f0f0;
+    }
+    input, button, textarea {
+      width: 100%;
+      margin: 0.5em 0;
+      padding: 0.5em;
+      font-size: 1em;
+    }
+    .output {
+      white-space: pre-wrap;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h1>PWA Builder</h1>
+  <p>Enter app details to generate a manifest and service worker for your own PWA:</p>
+
+  <input type="text" id="appName" placeholder="App Name" value="My PWA">
+  <input type="text" id="shortName" placeholder="Short Name" value="PWA">
+  <input type="text" id="startUrl" placeholder="Start URL" value="/">
+  <input type="text" id="themeColor" placeholder="Theme Color" value="#3367D6">
+  <input type="text" id="backgroundColor" placeholder="Background Color" value="#ffffff">
+
+  <button onclick="generatePWA()">Generate PWA Files</button>
+
+  <h2>Generated Manifest</h2>
+  <div class="output" id="manifestOutput"></div>
+
+  <h2>Generated Service Worker</h2>
+  <div class="output" id="swOutput"></div>
+
+  <button onclick="downloadFiles()">Download Files</button>
+
+  <script>
+    const swCode = `self.addEventListener('install', e => {
+  console.log('Service Worker Installed');
+  e.waitUntil(
+    caches.open('pwa-cache').then(cache => {
+      return cache.addAll(['/', '/index.html']);
+    })
+  );
+});
+
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(response => {
+      return response || fetch(e.request);
+    })
+  );
+});`;
+
+    function generatePWA() {
+      const name = document.getElementById('appName').value;
+      const short_name = document.getElementById('shortName').value;
+      const start_url = document.getElementById('startUrl').value;
+      const theme_color = document.getElementById('themeColor').value;
+      const background_color = document.getElementById('backgroundColor').value;
+
+      const manifest = {
+        name,
+        short_name,
+        start_url,
+        display: "standalone",
+        background_color,
+        theme_color,
+        icons: [{
+          src: "icon.png",
+          sizes: "192x192",
+          type: "image/png"
+        }]
+      };
+
+      document.getElementById('manifestOutput').textContent = JSON.stringify(manifest, null, 2);
+      document.getElementById('swOutput').textContent = swCode;
+    }
+
+    function downloadFiles() {
+      const manifestBlob = new Blob([document.getElementById('manifestOutput').textContent], { type: 'application/json' });
+      const swBlob = new Blob([document.getElementById('swOutput').textContent], { type: 'application/javascript' });
+
+      const link1 = document.createElement('a');
+      link1.href = URL.createObjectURL(manifestBlob);
+      link1.download = 'manifest.json';
+      link1.click();
+
+      const link2 = document.createElement('a');
+      link2.href = URL.createObjectURL(swBlob);
+      link2.download = 'service-worker.js';
+      link2.click();
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js').then(() => {
+          console.log("Service Worker Registered");
+        }).catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>
